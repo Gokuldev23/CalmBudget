@@ -2,24 +2,25 @@
 	import Calendar from '$lib/components/Calendar.svelte';
 	import ExpenseModal from '$lib/components/ExpenseModal.svelte';
 	import MonthlySummary from '$lib/components/MonthlySummary.svelte';
-	import type { Expense } from '$lib/types';
+	import type { CategoryItem, Expense } from '$lib/types';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
-	// Server-derived base values
 	const serverMonth = $derived(data.month);
 	const serverYear = $derived(data.year);
 	const serverExpenses = $derived(data.expenses as Expense[]);
+	const serverCategories = $derived(data.categories as CategoryItem[]);
 
-	// Local navigation overrides (null = use server value)
 	let navMonth = $state<number | null>(null);
 	let navYear = $state<number | null>(null);
 	let fetchedExpenses = $state<Expense[] | null>(null);
+	let fetchedCategories = $state<CategoryItem[] | null>(null);
 
 	const month = $derived(navMonth ?? serverMonth);
 	const year = $derived(navYear ?? serverYear);
 	const expenses = $derived(fetchedExpenses ?? serverExpenses);
+	const categories = $derived(fetchedCategories ?? serverCategories);
 
 	let selectedDate = $state<string | null>(null);
 
@@ -37,6 +38,11 @@
 	async function loadExpensesFor(m: number, y: number) {
 		const res = await fetch(`/api/expenses?month=${m}&year=${y}`);
 		if (res.ok) fetchedExpenses = await res.json();
+	}
+
+	async function loadCategories() {
+		const res = await fetch('/api/categories');
+		if (res.ok) fetchedCategories = await res.json();
 	}
 
 	async function prevMonth() {
@@ -82,14 +88,16 @@
 			/>
 		</div>
 
-		<MonthlySummary {expenses} {month} {year} />
+		<MonthlySummary {expenses} {month} {year} {categories} />
 	</main>
 </div>
 
 {#if selectedDate}
 	<ExpenseModal
 		date={selectedDate}
+		{categories}
 		onClose={() => (selectedDate = null)}
 		onAdded={() => loadExpensesFor(month, year)}
+		onCategoryAdded={loadCategories}
 	/>
 {/if}

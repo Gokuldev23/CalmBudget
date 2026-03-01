@@ -1,11 +1,16 @@
-export type Category = 'medical' | 'gadgets' | 'entertainment' | 'essentials' | 'other';
+export interface CategoryItem {
+	id: number;
+	name: string;
+	label: string;
+	color: string;
+}
 
 export interface Expense {
 	id: number;
 	userId: string;
 	title: string;
 	amount: number;
-	category: Category;
+	category: string;
 	notes: string | null;
 	date: string;
 	createdAt: Date | string;
