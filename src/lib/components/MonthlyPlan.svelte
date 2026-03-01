@@ -324,6 +324,9 @@
 								</div>
 							</div>
 						{:else}
+						{@const rActual = actualByCategory[p.category] ?? 0}
+						{@const rPlanned = plannedByCategory[p.category] ?? 0}
+						{@const rDiff = rPlanned - rActual}
 							<div class="flex items-start gap-2 p-2 rounded-lg hover:bg-gray-50 group">
 								<div class="flex-1 min-w-0">
 									<div class="flex items-center gap-1.5 flex-wrap">
@@ -342,6 +345,9 @@
 									</div>
 									<p class="text-xs text-gray-400 mt-0.5">
 										Auto-creates expense {p.scheduledDay ? `on the ${ordinal(p.scheduledDay)}` : 'monthly'}
+									</p>
+									<p class="text-xs mt-0.5 font-medium {rActual === 0 ? 'text-gray-300' : Math.abs(rDiff) < 0.01 ? 'text-indigo-500' : rDiff > 0 ? 'text-emerald-600' : 'text-red-500'}">
+										{#if rActual === 0}No spending yet{:else if Math.abs(rDiff) < 0.01}✓ Exact match · ₹{rActual.toFixed(0)} spent{:else if rDiff > 0}↓ ₹{rDiff.toFixed(0)} under · ₹{rActual.toFixed(0)} of ₹{rPlanned.toFixed(0)} planned{:else}↑ ₹{Math.abs(rDiff).toFixed(0)} over · ₹{rActual.toFixed(0)} of ₹{rPlanned.toFixed(0)} planned{/if}
 									</p>
 								</div>
 								<span class="text-sm font-semibold text-gray-900 shrink-0"
@@ -447,6 +453,9 @@
 								</div>
 							</div>
 						{:else}
+						{@const mActual = actualByCategory[p.category] ?? 0}
+						{@const mPlanned = plannedByCategory[p.category] ?? 0}
+						{@const mDiff = mPlanned - mActual}
 							<div class="flex items-start gap-2 p-2 rounded-lg hover:bg-gray-50 group">
 								<div class="flex-1 min-w-0">
 									<div class="flex items-center gap-1.5 flex-wrap">
@@ -459,6 +468,9 @@
 											>
 										{/if}
 									</div>
+									<p class="text-xs mt-0.5 font-medium {mActual === 0 ? 'text-gray-300' : Math.abs(mDiff) < 0.01 ? 'text-indigo-500' : mDiff > 0 ? 'text-emerald-600' : 'text-red-500'}">
+										{#if mActual === 0}No spending yet{:else if Math.abs(mDiff) < 0.01}✓ Exact match · ₹{mActual.toFixed(0)} spent{:else if mDiff > 0}↓ ₹{mDiff.toFixed(0)} under · ₹{mActual.toFixed(0)} of ₹{mPlanned.toFixed(0)} planned{:else}↑ ₹{Math.abs(mDiff).toFixed(0)} over · ₹{mActual.toFixed(0)} of ₹{mPlanned.toFixed(0)} planned{/if}
+									</p>
 								</div>
 								<span class="text-sm font-semibold text-gray-900 shrink-0"
 									>₹{p.amount.toFixed(2)}</span
