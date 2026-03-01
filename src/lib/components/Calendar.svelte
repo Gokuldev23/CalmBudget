@@ -57,7 +57,9 @@
 				<div></div>
 			{:else}
 				{@const isToday = dateStr === todayStr}
-				{@const hasDot = (expensesByDate[dateStr]?.length ?? 0) > 0}
+				{@const dayExpenses = expensesByDate[dateStr] ?? []}
+				{@const hasExpenses = dayExpenses.length > 0}
+				{@const hasPlanDot = dayExpenses.some((e) => e.planId != null)}
 				<button
 					onclick={() => onDateClick(dateStr)}
 					class="relative aspect-square flex items-center justify-center text-sm rounded-lg transition-colors
@@ -66,11 +68,19 @@
 						: 'text-gray-700 hover:bg-gray-50'}"
 				>
 					{dayNum(dateStr)}
-					{#if hasDot}
-						<span
-							class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full
-								{isToday ? 'bg-indigo-200' : 'bg-indigo-400'}"
-						></span>
+					{#if hasExpenses || hasPlanDot}
+						<span class="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5 items-center">
+							{#if hasExpenses}
+								<span
+									class="w-1 h-1 rounded-full {isToday ? 'bg-indigo-200' : 'bg-indigo-400'}"
+								></span>
+							{/if}
+							{#if hasPlanDot}
+								<span
+									class="w-1 h-1 rounded-full {isToday ? 'bg-violet-300' : 'bg-violet-500'}"
+								></span>
+							{/if}
+						</span>
 					{/if}
 				</button>
 			{/if}
