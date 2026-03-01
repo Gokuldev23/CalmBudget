@@ -2,7 +2,8 @@
 	import Calendar from '$lib/components/Calendar.svelte';
 	import ExpenseModal from '$lib/components/ExpenseModal.svelte';
 	import MonthlySummary from '$lib/components/MonthlySummary.svelte';
-	import type { CategoryItem, Expense } from '$lib/types';
+	import MonthlyPlan from '$lib/components/MonthlyPlan.svelte';
+	import type { Budget, CategoryItem, Expense, Plan } from '$lib/types';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -11,16 +12,19 @@
 	const serverYear = $derived(data.year);
 	const serverExpenses = $derived(data.expenses as Expense[]);
 	const serverCategories = $derived(data.categories as CategoryItem[]);
+	const serverPlans = $derived(data.plans as Plan[]);
 
 	let navMonth = $state<number | null>(null);
 	let navYear = $state<number | null>(null);
 	let fetchedExpenses = $state<Expense[] | null>(null);
 	let fetchedCategories = $state<CategoryItem[] | null>(null);
+	let fetchedPlans = $state<Plan[] | null>(null);
 
 	const month = $derived(navMonth ?? serverMonth);
 	const year = $derived(navYear ?? serverYear);
 	const expenses = $derived(fetchedExpenses ?? serverExpenses);
 	const categories = $derived(fetchedCategories ?? serverCategories);
+	const plans = $derived(fetchedPlans ?? serverPlans);
 
 	let selectedDate = $state<string | null>(null);
 
@@ -45,12 +49,17 @@
 		if (res.ok) fetchedCategories = await res.json();
 	}
 
+	async function loadPlans(m: number, y: number) {
+		const res = await fetch(`/api/plans?month=${m}&year=${y}`);
+		if (res.ok) fetchedPlans = await res.json();
+	}
+
 	async function prevMonth() {
 		const newM = month === 1 ? 12 : month - 1;
 		const newY = month === 1 ? year - 1 : year;
 		navMonth = newM;
 		navYear = newY;
-		await loadExpensesFor(newM, newY);
+		await Promise.all([loadExpensesFor(newM, newY), loadPlans(newM, newY)]);
 	}
 
 	async function nextMonth() {
@@ -58,7 +67,7 @@
 		const newY = month === 12 ? year + 1 : year;
 		navMonth = newM;
 		navYear = newY;
-		await loadExpensesFor(newM, newY);
+		await Promise.all([loadExpensesFor(newM, newY), loadPlans(newM, newY)]);
 	}
 </script>
 
@@ -88,12 +97,31 @@
 			/>
 		</div>
 
-		<MonthlySummary {expenses} {month} {year} {categories} />
+		<div class="space-y-6">
+			<MonthlySummary
+				{expenses}
+				{month}
+				{year}
+				{categories}
+				budget={data.budget as Budget | null}
+			/>
+			<MonthlyPlan
+				{plans}
+				{expenses}
+				{categories}
+				{month}
+				{year}
+				budget={data.budget as Budget | null}
+				onPlanChanged={() => loadPlans(month, year)}
+			/>
+		</div>
+
 		{#if selectedDate}
 			<ExpenseModal
 				date={selectedDate}
 				{categories}
 				expenses={expensesByDate[selectedDate] ?? []}
+				monthPlans={plans}
 				onClose={() => (selectedDate = null)}
 				onAdded={() => loadExpensesFor(month, year)}
 				onCategoryAdded={loadCategories}
@@ -101,4 +129,3 @@
 		{/if}
 	</main>
 </div>
-

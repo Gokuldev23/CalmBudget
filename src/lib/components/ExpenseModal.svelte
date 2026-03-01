@@ -2,19 +2,21 @@
 	import { enhance } from '$app/forms';
 	import { MONTH_NAMES, COLOR_PALETTE, COLOR_KEYS } from '$lib/constants';
 	import type { ColorKey } from '$lib/constants';
-	import type { CategoryItem, Expense } from '$lib/types';
+	import type { CategoryItem, Expense, Plan } from '$lib/types';
 	import { fly } from 'svelte/transition';
 
 	interface Props {
 		date: string;
 		categories: CategoryItem[];
 		expenses: Expense[];
+		monthPlans: Plan[];
 		onClose: () => void;
 		onAdded: () => Promise<void>;
 		onCategoryAdded: () => Promise<void>;
 	}
 
-	let { date, categories, expenses, onClose, onAdded, onCategoryAdded }: Props = $props();
+	let { date, categories, expenses, monthPlans, onClose, onAdded, onCategoryAdded }: Props =
+		$props();
 
 	const [year, month, day] = $derived(date.split('-').map(Number));
 	const displayDate = $derived(`${MONTH_NAMES[month - 1]} ${day}, ${year}`);
@@ -22,6 +24,14 @@
 	// '' means "use first category from list"; set explicitly when user picks or adds
 	let selectedCategory = $state('');
 	const effectiveCategory = $derived(selectedCategory || categories[0]?.name || '');
+
+	// Plan suggestion: find plans matching the currently selected category
+	const matchingPlans = $derived(
+		monthPlans.filter((p) => p.category === effectiveCategory)
+	);
+	const totalPlannedForCategory = $derived(
+		matchingPlans.reduce((sum, p) => sum + p.amount, 0)
+	);
 
 	let addingCategory = $state(false);
 	let newLabel = $state('');
@@ -399,6 +409,21 @@
 						</div>
 					{/if}
 				</div>
+
+				<!-- Plan suggestion hint -->
+				{#if matchingPlans.length > 0 && !addingCategory}
+					<div class="flex items-start gap-2 p-2.5 rounded-lg bg-indigo-50 border border-indigo-100 text-xs text-indigo-700">
+						<span class="shrink-0 mt-0.5">📋</span>
+						<span>
+							You planned <strong>₹{totalPlannedForCategory.toFixed(0)}</strong> for
+							{categories.find((c) => c.name === effectiveCategory)?.label ?? effectiveCategory} this
+							month
+							{#if matchingPlans.length > 1}
+								across {matchingPlans.length} plans
+							{/if}.
+						</span>
+					</div>
+				{/if}
 
 				<div>
 					<label for="expense-notes" class="block text-sm font-medium text-gray-700 mb-1">

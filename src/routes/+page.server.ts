@@ -1,6 +1,6 @@
 import { db } from '$lib/server/db';
-import { expense, category } from '$lib/server/db/schema';
-import { eq, and, gte, lte } from 'drizzle-orm';
+import { expense, category, budget, plan } from '$lib/server/db/schema';
+import { eq, and, gte, lte, or, isNull, isNotNull } from 'drizzle-orm';
 import { fail, redirect } from '@sveltejs/kit';
 import { auth } from '$lib/server/auth';
 import { DEFAULT_CATEGORIES } from '$lib/constants';
@@ -28,6 +28,82 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const lastDay = new Date(year, month, 0).getDate();
 	const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
+	// Load budget
+	const [userBudget] = await db.select().from(budget).where(eq(budget.userId, userId)).limit(1);
+
+	// Load plans for this month (month-specific + recurring)
+	const plans = await db
+		.select()
+		.from(plan)
+		.where(
+			and(
+				eq(plan.userId, userId),
+				or(
+					and(eq(plan.month, month), eq(plan.year, year)),
+					and(isNull(plan.month), isNull(plan.year), eq(plan.isRecurring, true))
+				)
+			)
+		)
+		.orderBy(plan.createdAt);
+
+	// Auto-create expenses from recurring plans (only for current real month)
+	const currentMonth = now.getMonth() + 1;
+	const currentYear = now.getFullYear();
+	const currentDay = now.getDate();
+
+	const recurringPlans = plans.filter((p) => p.isRecurring);
+
+	if (month === currentMonth && year === currentYear && recurringPlans.length > 0) {
+		// Find which recurring plans already have expenses this month
+		const existingAutoExpenses = await db
+			.select({ planId: expense.planId })
+			.from(expense)
+			.where(
+				and(
+					eq(expense.userId, userId),
+					gte(expense.date, startDate),
+					lte(expense.date, endDate),
+					isNotNull(expense.planId)
+				)
+			);
+		const autoPlanIds = new Set(existingAutoExpenses.map((e) => e.planId));
+
+		let didCreate = false;
+		for (const p of recurringPlans) {
+			if (!autoPlanIds.has(p.id) && p.scheduledDay && currentDay >= p.scheduledDay) {
+				const expDate = `${year}-${String(month).padStart(2, '0')}-${String(p.scheduledDay).padStart(2, '0')}`;
+				await db.insert(expense).values({
+					userId,
+					title: p.title,
+					amount: p.amount,
+					category: p.category,
+					notes: null,
+					date: expDate,
+					planId: p.id
+				});
+				didCreate = true;
+			}
+		}
+		// Re-fetch expenses if any were auto-created
+		if (didCreate) {
+			const freshExpenses = await db
+				.select()
+				.from(expense)
+				.where(
+					and(eq(expense.userId, userId), gte(expense.date, startDate), lte(expense.date, endDate))
+				)
+				.orderBy(expense.date);
+			return {
+				expenses: freshExpenses,
+				categories,
+				month,
+				year,
+				budget: userBudget ?? null,
+				plans
+			};
+		}
+	}
+
 	const expenses = await db
 		.select()
 		.from(expense)
@@ -36,7 +112,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		)
 		.orderBy(expense.date);
 
-	return { expenses, categories, month, year };
+	return { expenses, categories, month, year, budget: userBudget ?? null, plans };
 };
 
 export const actions: Actions = {
