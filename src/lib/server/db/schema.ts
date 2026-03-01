@@ -1,4 +1,4 @@
-import { pgTable, serial, text, real, date, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, real, date, timestamp, integer } from 'drizzle-orm/pg-core';
 import { user } from './auth.schema';
 
 export const category = pgTable('category', {
@@ -23,6 +23,16 @@ export const expense = pgTable('expense', {
 	notes: text('notes'),
 	date: date('date').notNull(),
 	createdAt: timestamp('created_at').defaultNow().notNull()
+});
+
+export const budget = pgTable('budget', {
+	id: serial('id').primaryKey(),
+	userId: text('user_id')
+		.notNull()
+		.unique()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	amount: real('amount').notNull(),
+	creditDay: integer('credit_day').notNull().default(1)
 });
 
 export * from './auth.schema';

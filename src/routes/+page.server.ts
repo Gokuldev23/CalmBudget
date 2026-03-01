@@ -1,5 +1,5 @@
 import { db } from '$lib/server/db';
-import { expense, category } from '$lib/server/db/schema';
+import { expense, category, budget } from '$lib/server/db/schema';
 import { eq, and, gte, lte } from 'drizzle-orm';
 import { fail, redirect } from '@sveltejs/kit';
 import { auth } from '$lib/server/auth';
@@ -36,7 +36,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		)
 		.orderBy(expense.date);
 
-	return { expenses, categories, month, year };
+	const [userBudget] = await db.select().from(budget).where(eq(budget.userId, userId)).limit(1);
+
+	return { expenses, categories, month, year, budget: userBudget ?? null };
 };
 
 export const actions: Actions = {

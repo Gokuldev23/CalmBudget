@@ -88,7 +88,7 @@
 			/>
 		</div>
 
-		<MonthlySummary {expenses} {month} {year} {categories} />
+		<MonthlySummary {expenses} {month} {year} {categories} budget={data.budget} />
 		{#if selectedDate}
 			<ExpenseModal
 				date={selectedDate}

@@ -5,6 +5,13 @@ export interface CategoryItem {
 	color: string;
 }
 
+export interface Budget {
+	id: number;
+	userId: string;
+	amount: number;
+	creditDay: number;
+}
+
 export interface Expense {
 	id: number;
 	userId: string;
