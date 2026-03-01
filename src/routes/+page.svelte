@@ -90,6 +90,7 @@
 				{month}
 				{year}
 				{expensesByDate}
+				{plans}
 				{todayStr}
 				onPrevMonth={prevMonth}
 				onNextMonth={nextMonth}

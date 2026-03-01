@@ -1,19 +1,23 @@
 <script lang="ts">
 	import { DAYS, MONTH_NAMES } from '$lib/constants';
-	import type { Expense } from '$lib/types';
+	import type { Expense, Plan } from '$lib/types';
 
 	interface Props {
 		month: number;
 		year: number;
 		expensesByDate: Record<string, Expense[]>;
+		plans: Plan[];
 		todayStr: string;
 		onPrevMonth: () => void;
 		onNextMonth: () => void;
 		onDateClick: (date: string) => void;
 	}
 
-	let { month, year, expensesByDate, todayStr, onPrevMonth, onNextMonth, onDateClick }: Props =
+	let { month, year, expensesByDate, plans, todayStr, onPrevMonth, onNextMonth, onDateClick }: Props =
 		$props();
+
+	// Categories that have a plan this month — used for calendar dot matching
+	const plannedCategories = $derived(new Set(plans.map((p) => p.category)));
 
 	const calendarDays = $derived.by(() => {
 		const firstDay = new Date(year, month - 1, 1);
@@ -59,7 +63,7 @@
 				{@const isToday = dateStr === todayStr}
 				{@const dayExpenses = expensesByDate[dateStr] ?? []}
 				{@const hasExpenses = dayExpenses.length > 0}
-				{@const hasPlanDot = dayExpenses.some((e) => e.planId != null)}
+				{@const hasPlanDot = dayExpenses.some((e) => plannedCategories.has(e.category))}
 				<button
 					onclick={() => onDateClick(dateStr)}
 					class="relative aspect-square flex items-center justify-center text-sm rounded-lg transition-colors
