@@ -89,15 +89,16 @@
 		</div>
 
 		<MonthlySummary {expenses} {month} {year} {categories} />
+		{#if selectedDate}
+			<ExpenseModal
+				date={selectedDate}
+				{categories}
+				expenses={expensesByDate[selectedDate] ?? []}
+				onClose={() => (selectedDate = null)}
+				onAdded={() => loadExpensesFor(month, year)}
+				onCategoryAdded={loadCategories}
+			/>
+		{/if}
 	</main>
 </div>
 
-{#if selectedDate}
-	<ExpenseModal
-		date={selectedDate}
-		{categories}
-		onClose={() => (selectedDate = null)}
-		onAdded={() => loadExpensesFor(month, year)}
-		onCategoryAdded={loadCategories}
-	/>
-{/if}

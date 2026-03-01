@@ -28,3 +28,45 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 
 	return json(expenses);
 };
+
+export const PATCH: RequestHandler = async ({ locals, request }) => {
+	if (!locals.user) error(401, 'Unauthorized');
+
+	const data = await request.formData();
+	const id = parseInt(data.get('id')?.toString() ?? '');
+	const title = data.get('title')?.toString().trim() ?? '';
+	const amountStr = data.get('amount')?.toString() ?? '';
+	const categoryName = data.get('category')?.toString() ?? '';
+	const notes = data.get('notes')?.toString().trim() || null;
+
+	if (!id || !title || !amountStr || !categoryName) error(400, 'Missing required fields');
+
+	const amount = parseFloat(amountStr);
+	if (isNaN(amount) || amount <= 0) error(400, 'Invalid amount');
+
+	const [updated] = await db
+		.update(expense)
+		.set({ title, amount, category: categoryName, notes })
+		.where(and(eq(expense.id, id), eq(expense.userId, locals.user.id)))
+		.returning();
+
+	if (!updated) error(404, 'Expense not found');
+
+	return json(updated);
+};
+
+export const DELETE: RequestHandler = async ({ locals, url }) => {
+	if (!locals.user) error(401, 'Unauthorized');
+
+	const id = parseInt(url.searchParams.get('id') ?? '');
+	if (!id) error(400, 'Missing id');
+
+	const [deleted] = await db
+		.delete(expense)
+		.where(and(eq(expense.id, id), eq(expense.userId, locals.user.id)))
+		.returning();
+
+	if (!deleted) error(404, 'Expense not found');
+
+	return json({ success: true });
+};
